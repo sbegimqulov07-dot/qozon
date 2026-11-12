@@ -17,7 +17,7 @@ export function makeLot(ingId: string, qty: number, ctx: PriceCtx, opts: Partial
   const ing = ING_MAP[ingId]
   // go'sht ko'p miqdorda olinsa (3 kundan ortiq yetadigan) — muzlatkichga deb hisoblaymiz
   let place = opts.place
-  if (!place && ing?.cat === 'gosht' && ing.shelf.freezer && qty > 600) place = 'freezer'
+  if (!place && ing?.cat === 'gosht' && ing.shelf.freezer && qty >= 500) place = 'freezer'
   const d = defaultExpiry(ingId, place)
   const ref = unitPrice(ingId, ctx)
   // narx kg/L/dona uchun berilgan bo'lsa -> birlik narxiga

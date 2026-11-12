@@ -60,7 +60,7 @@ export default function Shopping() {
         {!preview && <Check on={!!x.checked} onClick={() => st.toggleShopLine(x.ing)} />}
         <button className="grow" style={{ textAlign: 'left' }} onClick={() => { if (preview) return; setEdit(x.ing); setEQty(x.actualQty ?? x.qty); setEPrice(x.actualPrice ?? x.estPrice) }}>
           <div className={'title' + (x.checked ? ' strike' : '')}>{ING_MAP[x.ing].name}</div>
-          <div className="small muted num">{ING_MAP[x.ing].cat === 'gosht' && (x.actualQty ?? x.qty) > 600 ? '❄ bo\'lib muzlating · ' : ''}{fmtQty(x.ing, x.actualQty ?? x.qty)}{x.packs > 1 ? ` (${x.packs} × ${ING_MAP[x.ing].packLabel})` : ` (${ING_MAP[x.ing].packLabel})`} · {x.reasons.join(', ')}</div>
+          <div className="small muted num">{ING_MAP[x.ing].cat === 'gosht' && (x.actualQty ?? x.qty) >= 500 ? '❄ bo\'lib muzlating · ' : ''}{fmtQty(x.ing, x.actualQty ?? x.qty)}{x.packs > 1 ? ` (${x.packs} × ${ING_MAP[x.ing].packLabel})` : ` (${ING_MAP[x.ing].packLabel})`} · {x.reasons.join(', ')}</div>
         </button>
         <div className="num small" style={{ textAlign: 'right' }}><b>{fmtMoney(x.actualPrice ?? x.estPrice)}</b>{x.actualPrice !== undefined && <div className="tiny muted">reja {fmtMoney(x.estPrice)}</div>}</div>
         {preview && <button className="icon-btn" aria-label="O'chirish" onClick={() => setPreview({ ...L, lines: L.lines.filter(y => y.ing !== x.ing) })}>×</button>}
