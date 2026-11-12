@@ -4,7 +4,7 @@ import { ING_MAP } from '../data/ingredients'
 import { applyCustomRecipes, RECIPE_MAP, RECIPES } from '../data/recipes'
 import type { Recipe, Slot } from '../data/types'
 import { addDays, emptyData, mergeData, stampChanges, todayStr, uid, type AppData, type Leftover, type Lot, type LogEvent, type Settings, type ShoppingList } from '../engine/model'
-import { consume, defaultExpiry, makeLot } from '../engine/pantry'
+import { consume, defaultExpiry, makeLot, resolveSub, stockMap } from '../engine/pantry'
 import { recipeKcal, unitPrice } from '../engine/pricing'
 import { priceCtx } from '../engine/recommend'
 import { loadRemote, saveRemote, SUPABASE_KEY, SUPABASE_URL } from './sync'
@@ -114,7 +114,10 @@ export const useStore = create<Store>()(persist((set, get) => ({
       let ingCost = 0
       for (const i of r.ingredients) {
         if (i.opt) continue
-        const res = consume(d.lots, i.id, i.qty * scale, ctx)
+        const need = i.qty * scale
+        const stock = stockMap(d.lots)
+        const useId = (stock[i.id] ?? 0) >= need * 0.9 ? i.id : (resolveSub(i.id, stock, need) ?? i.id)
+        const res = consume(d.lots, useId, need, ctx)
         d.lots = res.lots; ingCost += res.cost
       }
       const totalKcal = recipeKcal(r, scale)

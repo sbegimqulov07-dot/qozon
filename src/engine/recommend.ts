@@ -32,7 +32,7 @@ export function dayCost(data: AppData, date: string) {
   return data.logs.filter(l => l.date === date && (l.type === 'eat' || l.type === 'eat_out')).reduce((s, l) => s + l.cost, 0)
 }
 
-export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { quick?: boolean; cheap?: boolean; noMeat?: boolean; reserved?: Record<string, number>; lots?: Lot[]; history?: { date: string; recipeId: string }[] } = {}): Scored[] {
+export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { quick?: boolean; cheap?: boolean; noMeat?: boolean; reserved?: Record<string, number>; lots?: Lot[]; history?: { date: string; recipeId: string }[]; allowToday?: boolean } = {}): Scored[] {
   const ctx = priceCtx(data)
   const lots = opts.lots ?? data.lots
   const stock = stockMap(lots)
@@ -62,7 +62,7 @@ export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { 
     const reasons: string[] = [], warns: string[] = []
     let score = 0
     const av = availability(r, stock, s.people, ctx, opts.reserved)
-    if (av.status === 'full') { score += 40; reasons.push('Hamma masalliq bor') }
+    if (av.status === 'full') { score += 40; reasons.push(Object.keys(av.subs ?? {}).length ? `Hamma masalliq bor (${Object.entries(av.subs!).map(([a, b]) => `${ING_MAP[a]?.name.split(' (')[0]} → ${ING_MAP[b]?.name.split(' (')[0]}`).join(', ')})` : 'Hamma masalliq bor') }
     else if (av.status === 'almost') { score += 25; warns.push(`${av.missing.length} ta yetishmaydi: ${av.missing.map(m => ING_MAP[m.id]?.name.split(' (')[0]).join(', ')}`) }
     else warns.push(`Bozorlik kerak: ${av.missing.slice(0, 3).map(m => ING_MAP[m.id]?.name.split(' (')[0]).join(', ')}${av.missing.length > 3 ? '…' : ''}`)
     const used = r.ingredients.filter(i => !i.opt).map(i => i.id)
@@ -70,7 +70,8 @@ export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { 
     if (urg.length) { score += 20; reasons.push(`${ING_MAP[urg[0]]?.name.split(' (')[0]} 2 kunda buziladi`) }
     else { const so = used.filter(i => soonIngs.has(i)); if (so.length) { score += 10; reasons.push(`${ING_MAP[so[0]]?.name.split(' (')[0]} tez ishlatilishi kerak`) } }
     const le = lastEaten[r.id]
-    if (le !== undefined && le <= 2 && slot !== 'nonushta') { score -= 25; warns.push(`${le === 0 ? 'Bugun' : le + ' kun oldin'} yedingiz`) }
+    if (le === 0 && !opts.allowToday) continue // bugun yeyilgan ovqat boshqa mahalga tavsiya qilinmaydi
+    if (le !== undefined && le <= 2 && slot !== 'nonushta') { score -= 25; warns.push(`${le} kun oldin yedingiz`) }
     else if (le !== undefined && le <= 6 && slot !== 'nonushta') score -= 10
     else if (le === undefined || le >= 14) { score += 5; if (le !== undefined) reasons.push('Anchadan beri yemadingiz') }
     if (lastBase.length && r.ingredients.some(i => lastBase.includes(i.id)) && slot !== 'nonushta') score -= 8
@@ -96,7 +97,9 @@ export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { 
     score += (seed(date + r.id) - 0.5) * 6
     out.push({ recipe: r, score, avail: av, reasons: reasons.slice(0, 4), warns: warns.slice(0, 3), cost: pc, kcal })
   }
-  return out.sort((a, b) => b.score - a.score)
+  // avval omborda bori: hammasi bor → deyarli bor → bozorlik kerak; ichida ball bo'yicha
+  const rank = (s: Scored) => s.avail.status === 'full' ? 0 : s.avail.status === 'almost' ? 1 : 2
+  return out.sort((a, b) => rank(a) - rank(b) || b.score - a.score)
 }
 
 /** kaloriya yetmasa tamaddi takliflari */

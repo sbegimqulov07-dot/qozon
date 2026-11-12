@@ -28,7 +28,7 @@ export function generateMenu(data: AppData, horizon: number, start = todayStr(),
       const lf = pending.find(p => p.portions >= people && p.until >= date && p.from < date && (slot !== 'nonushta' || RECIPE_MAP[p.recipeId]?.cat === 'nonushta') && RECIPE_MAP[p.recipeId]?.meals[slot] !== 'no' && menu[date].tushlik !== p.recipeId)
       if (lf) { lf.portions -= people; menu[date][slot] = lf.recipeId; hist.push({ date, recipeId: lf.recipeId }); const lr = RECIPE_MAP[lf.recipeId]; if (lr) { spent += portionCost(lr, ctx) * people; kcalSum += portionKcal(lr) * people }; continue }
       // virtual ombor: masalliq bo'yicha emas, xilma-xillik bo'yicha tanlaymiz (ombor keyin ayriladi)
-      const list = recommend(data, slot, date, { history: hist, lots: [] })
+      const list = recommend(data, slot, date, { history: hist, lots: [], allowToday: true })
         .filter(s => s.recipe.cat !== 'garnir' && s.recipe.id !== menu[date].tushlik && s.recipe.id !== menu[date].nonushta)
         .filter(s => !(meatDays >= data.settings.meatPerWeek && s.recipe.ingredients.some(x => !x.opt && ING_MAP[x.id]?.cat === 'gosht')) || slot === 'nonushta')
       // byudjet nazorati: shu kungacha sarf rejadan oshsa — arzon variantlar

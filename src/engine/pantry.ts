@@ -42,10 +42,20 @@ export function consume(lots: Lot[], ingId: string, qty: number, ctx: PriceCtx):
   return { lots: [...others, ...kept], cost, missing: need }
 }
 
-export type Availability = { status: 'full' | 'almost' | 'missing'; missing: { id: string; need: number; have: number }[]; missingCost: number }
+export type Availability = { status: 'full' | 'almost' | 'missing'; missing: { id: string; need: number; have: number }[]; missingCost: number; subs?: Record<string, string> }
+
+/** masalliq yo'q bo'lsa, omborda bor o'rnini bosuvchisini topadi (ikki tomonlama) */
+export function resolveSub(ingId: string, stock: Record<string, number>, need: number, reserved: Record<string, number> = {}): string | null {
+  const ing = ING_MAP[ingId]; if (!ing) return null
+  const cands = new Set<string>(ing.subs ?? [])
+  for (const o of Object.values(ING_MAP)) if (o.subs?.includes(ingId)) cands.add(o.id)
+  for (const c of cands) { const have = (stock[c] ?? 0) - (reserved[c] ?? 0); if (have >= need * 0.9) return c }
+  return null
+}
 
 export function availability(r: Recipe, stock: Record<string, number>, scale: number, ctx: PriceCtx, reserved: Record<string, number> = {}): Availability {
   const missing: Availability['missing'] = []
+  const subs: Record<string, string> = {}
   let missingCost = 0
   for (const i of r.ingredients) {
     if (i.opt) continue
@@ -55,14 +65,16 @@ export function availability(r: Recipe, stock: Record<string, number>, scale: nu
     // mayda ziravorlar uchun 20% chidam
     const tol = ing && ['tuz', 'murch', 'zira', 'qizil_qalampir', 'koriandr', 'zarchava', 'lavr', 'sirka', 'soda'].includes(i.id) ? 0.5 : 0.9
     if (have < need * tol) {
+      const sub = resolveSub(i.id, stock, need, reserved)
+      if (sub) { subs[i.id] = sub; continue }
       missing.push({ id: i.id, need, have })
       missingCost += (need - have) * unitPrice(i.id, ctx)
     }
   }
-  if (missing.length === 0) return { status: 'full', missing, missingCost: 0 }
+  if (missing.length === 0) return { status: 'full', missing, missingCost: 0, subs }
   const hasCore = missing.some(m => ING_MAP[m.id]?.cat === 'gosht' || ING_MAP[m.id]?.cat === 'quruq' && m.have === 0)
-  if (missing.length <= 2 && missingCost <= 8000 && !hasCore) return { status: 'almost', missing, missingCost }
-  return { status: 'missing', missing, missingCost }
+  if (missing.length <= 2 && missingCost <= 8000 && !hasCore) return { status: 'almost', missing, missingCost, subs }
+  return { status: 'missing', missing, missingCost, subs }
 }
 
 export function expiringSoon(lots: Lot[], days = 2, today = todayStr()) {
