@@ -6,6 +6,7 @@ import { portionCost, portionKcal } from '../engine/pricing'
 import { Check, Stepper } from '../components/ui'
 import { useStore } from '../store/store'
 import { go } from '../store/ui'
+import { loadRemote } from '../store/sync'
 
 const EXCL = [{ id: 'jigar', l: 'Jigar' }, { id: 'kolbasa', l: 'Kolbasa' }, { id: 'sosiska', l: 'Sosiska' }, { id: 'tvorog', l: 'Tvorog' }, { id: 'qatiq', l: 'Qatiq' }, { id: 'mosh', l: 'Mosh' }, { id: 'yasmiq', l: 'Yasmiq' }, { id: 'qovoq', l: 'Qovoq' }, { id: 'karam', l: 'Karam' }, { id: 'mayonez', l: 'Mayonez' }, { id: 'mol', l: 'Mol go\'shti' }, { id: 'yongoq', l: 'Yong\'oq' }]
 
@@ -27,12 +28,11 @@ export default function Onboarding() {
 
   const tryCode = async () => {
     if (code.trim().length < 6) { setCodeMsg('Kod kamida 6 ta belgi'); return }
-    try { const r = await connectSync(code.trim(), 'remote'); setCodeMsg(r === 'remote' ? 'Yuklandi!' : 'Serverda bu kod bilan ma\'lumot yo\'q — yangi boshlaymiz, kod saqlanadi'); if (r === 'remote') go('bugun') } catch (e) { setCodeMsg('Xato: ' + (e as Error).message) }
+    try { const r = await loadRemote(code.trim()); if (r) { await connectSync(code.trim(), 'remote'); setCodeMsg('Yuklandi!'); go('bugun') } else setCodeMsg('Serverda bu kod bilan ma\'lumot yo\'q — yangi boshlaymiz, kod oxirida saqlanadi') } catch (e) { setCodeMsg('Xato: ' + (e as Error).message) }
   }
 
   const done = () => {
-    finish({ name, people, excluded }, recipes.filter(id => visibleRecipes.some(r => r.id === id)), Object.entries(pantry).map(([id, qty]) => ({ id, qty })))
-    if (code.trim().length >= 6) connectSync(code.trim(), 'local').catch(() => {})
+    finish({ name, people, excluded, syncCode: code.trim().length >= 6 ? code.trim() : '' }, recipes.filter(id => visibleRecipes.some(r => r.id === id)), Object.entries(pantry).map(([id, qty]) => ({ id, qty })))
     go('bozorlik')
   }
 

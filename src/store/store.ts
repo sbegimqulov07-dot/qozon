@@ -189,9 +189,10 @@ export const useStore = create<Store>()(persist((set, get) => ({
       }
       const d = structuredClone(get().data)
       d.settings.syncCode = code
-      d.rev = remote ? remote.rev : 0
-      const res = await saveRemote(code, d, remote ? remote.rev : 0)
-      if (res.ok) d.rev = res.rev
+      let base = remote ? remote.rev : 0
+      let res = await saveRemote(code, d, base)
+      if (!res.ok && res.conflict) { base = res.rev; res = await saveRemote(code, d, base) }
+      d.rev = res.ok ? res.rev : base
       set({ data: d, sync: 'idle', syncMsg: 'Ulandi' })
       return 'local'
     } catch (e) { set({ sync: 'error', syncMsg: 'Xato: ' + (e as Error).message }); throw e }
@@ -201,22 +202,28 @@ export const useStore = create<Store>()(persist((set, get) => ({
     if (!code) return
     set({ sync: 'syncing' })
     try {
-      const res = await saveRemote(code, data, data.rev)
-      if (res.ok) { set({ data: { ...get().data, rev: res.rev }, sync: 'idle', syncMsg: 'Saqlandi ' + new Date().toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' }) }) }
-      else if (res.conflict && res.state) {
-        // boshqa qurilma yangiroq: uni olamiz
-        set({ data: { ...res.state, rev: res.rev, settings: { ...res.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Boshqa qurilmadagi o\'zgarishlar yuklandi' })
-        get().showToast('Boshqa qurilmadagi yangi ma\'lumot yuklandi')
+      let res = await saveRemote(code, data, data.rev)
+      if (!res.ok && res.conflict && res.state) {
+        const localNewer = new Date(data.updatedAt).getTime() > new Date(res.state.updatedAt ?? 0).getTime()
+        if (localNewer) {
+          res = await saveRemote(code, get().data, res.rev)
+        } else {
+          set({ data: { ...res.state, rev: res.rev, settings: { ...res.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Boshqa qurilmadagi o\'zgarishlar yuklandi' })
+          get().showToast('Boshqa qurilmadagi yangi ma\'lumot yuklandi')
+          return
+        }
       }
+      if (res.ok) set({ data: { ...get().data, rev: res.rev }, sync: 'idle', syncMsg: 'Saqlandi ' + new Date().toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' }) })
+      else set({ sync: 'error', syncMsg: 'Saqlanmadi, qayta urinaman' })
     } catch (e) { set({ sync: 'error', syncMsg: 'Sinxron xatosi: ' + (e as Error).message }) }
   },
   pullNow: async () => {
     const { data } = get(); const code = data.settings.syncCode
-    if (!code) return false
+    if (!code || pushTimer) return false
     try {
       const remote = await loadRemote(code)
       if (remote && remote.rev > data.rev) {
-        set({ data: { ...remote.state, rev: remote.rev, settings: { ...remote.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Yangilandi' })
+        set({ data: { ...emptyData(), ...remote.state, rev: remote.rev, settings: { ...emptyData().settings, ...remote.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Yangilandi' })
         return true
       }
       set({ sync: 'idle' })
@@ -226,7 +233,6 @@ export const useStore = create<Store>()(persist((set, get) => ({
 }), {
   name: 'qozon:v1',
   partialize: s => ({ data: s.data }),
-  onRehydrateStorage: () => (s) => { if (s?.data.settings.syncCode) { useStore.setState({ sync: 'idle' }); setTimeout(() => useStore.getState().pullNow(), 300) } },
 }))
 
 function schedulePush() {
@@ -257,6 +263,7 @@ export const useData = () => useStore(s => s.data)
 
 // sinxron: sahifa ko'ringanda va har 25 soniyada tortish
 if (typeof window !== 'undefined') {
+  setTimeout(() => { const s = useStore.getState(); if (s.data.settings.syncCode) { useStore.setState({ sync: 'idle' }); s.pullNow() } }, 200)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') useStore.getState().pullNow() })
   setInterval(() => { if (document.visibilityState === 'visible') useStore.getState().pullNow() }, 25000)
   window.addEventListener('pagehide', () => {
