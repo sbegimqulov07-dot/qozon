@@ -15,7 +15,7 @@ export const INGREDIENTS: Ingredient[] = [
   I({ id: 'kolbasa', name: 'Kolbasa (pishirilgan)', ru: 'варёная колбаса', cat: 'gosht', unit: 'g', pack: 400, packLabel: '400 g', price: 85000, market: 90000, kcal: 300, shelf: { fridge: 7 }, place: 'fridge', section: 'Sut mahsulotlari' }),
   I({ id: 'sosiska', name: 'Sosiska', ru: 'сосиски', cat: 'gosht', unit: 'g', pack: 400, packLabel: '400 g', price: 70000, market: 75000, kcal: 260, shelf: { fridge: 7, freezer: 60 }, place: 'fridge', section: 'Sut mahsulotlari', subs: ['kolbasa'] }),
   // ---- Tuxum / sut ----
-  I({ id: 'tuxum', name: 'Tuxum', ru: 'яйца', cat: 'sut', unit: 'dona', piece: 55, pack: 10, packLabel: '10 dona', price: 1700, market: 2000, kcal: 155, shelf: { fridge: 21, room: 10 }, place: 'fridge', section: 'Sut mahsulotlari', par: 6 }),
+  I({ id: 'tuxum', name: 'Tuxum', ru: 'яйца', cat: 'sut', unit: 'dona', piece: 55, pack: 10, packLabel: '10 dona', price: 2200, market: 2600, kcal: 155, shelf: { fridge: 21, room: 10 }, place: 'fridge', section: 'Sut mahsulotlari', par: 6 }),
   I({ id: 'sut', name: 'Sut', ru: 'молоко', cat: 'sut', unit: 'ml', pack: 1000, packLabel: '1 L', price: 14000, market: 15000, kcal: 60, shelf: { fridge: 5 }, place: 'fridge', section: 'Sut mahsulotlari' }),
   I({ id: 'qatiq', name: 'Qatiq / kefir', ru: 'кефир', cat: 'sut', unit: 'ml', pack: 1000, packLabel: '1 L', price: 13000, market: 14000, kcal: 55, shelf: { fridge: 7 }, place: 'fridge', section: 'Sut mahsulotlari' }),
   I({ id: 'smetana', name: 'Smetana (qaymoq)', ru: 'сметана', cat: 'sut', unit: 'g', pack: 500, packLabel: '500 g', price: 36000, market: 40000, kcal: 200, shelf: { fridge: 10 }, place: 'fridge', section: 'Sut mahsulotlari' }),
