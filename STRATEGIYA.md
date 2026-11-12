@@ -433,3 +433,15 @@ Saqlash: `localStorage["qozon:v1"]` (sxema versiyasi + migratsiya), debounce aut
 - Stat.uz, 2026-oktyabr iste'mol narxlari press-relizi — https://stat.uz/img/news/press-reliz-ini-oktyabr-2026-lotin_p73142.pdf
 - Spot.uz, oktyabrda oziq-ovqat +1 %, tuxum +5,2 % — https://www.spot.uz/oz/2026/11/06/october-prices/
 - gogov.ru, Toshkent (tovuq filesi, supermarket narxlari) — https://gogov.ru/cost-of-living/tashkent
+
+---
+
+## 20. Qurilishdan oldin qabul qilingan qarorlar (2026-11-12)
+- Odam soni sozlamasi: barcha miqdorlar, porsiyalar va bozorlik ×N (pishirishda ham o'zgartirsa bo'ladi).
+- Jihozlar: gaz plita + qozon + tova + muzlatgich. Duxovka talab qiladigan retseptlar (somsa, duxovka tovuq) chiqarib tashlandi.
+- Go'sht: asosan tovuq; mol go'shti faqat 2 retseptda (payshanba palovi, go'shtli sho'rva).
+- Retsept tanlash mezonlari: oson/juda oson, nisbatan arzon, mazali, kaloriyaga boy. Uzoq ishlov (manti, chuchvara bukish) yo'q — jami 49 retsept.
+- Kaloriya: har masalliqda kcal/100 g → har retsept va porsiya kcal avtomatik; kunlik maqsad 2 600 kcal, kechqurun yetmasa tamaddi takliflari; suv 2 L (8 stakan).
+- Byudjet 1 200 000 so'm/oy; do'kon: bozor + Korzinka (ikkala narx).
+- Joylash: GitHub Pages (GitHub Actions orqali). Qo'shimcha: Claude artifact havolasi.
+- Sinxron: hamma qurilmada bir xil ombor — Supabase (mavjud "Vazifalar" loyihasida `qozon_state` jadvali) + sinxron kodi.
