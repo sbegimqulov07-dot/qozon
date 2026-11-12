@@ -8,8 +8,8 @@ export interface LogEvent {
   recipeId?: string; name?: string; slot?: Slot; portions?: number; cost: number; kcal: number
   ingCost?: number; ing?: string; qty?: number; note?: string
 }
-export interface ShopLine { ing: string; qty: number; estPrice: number; reasons: string[]; checked?: boolean; actualQty?: number; actualPrice?: number; packs: number }
-export interface ShoppingList { id: string; createdAt: string; horizon: number; mode: 'plan' | 'par' | 'mix'; store: 'bozor' | 'market'; lines: ShopLine[]; status: 'open' | 'done'; menu?: Record<string, Partial<Record<Slot, string>>> }
+export interface ShopLine { ing: string; qty: number; estPrice: number; reasons: string[]; checked?: boolean; actualQty?: number; actualPrice?: number; packs: number; useCost?: number; kind?: 'plan' | 'par' }
+export interface ShoppingList { id: string; createdAt: string; horizon: number; mode: 'plan' | 'par' | 'mix'; store: 'bozor' | 'market'; lines: ShopLine[]; status: 'open' | 'done'; menu?: Record<string, Partial<Record<Slot, string>>>; planCost?: number; planKcal?: number }
 export interface Purchase { id: string; date: string; store: string; lines: { ing: string; qty: number; price: number }[]; total: number; plannedTotal: number }
 export interface Settings {
   name: string; people: number; timeWeekday: number; timeWeekend: number

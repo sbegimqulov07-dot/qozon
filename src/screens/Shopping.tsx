@@ -3,7 +3,7 @@ import { Check, Sheet, Stepper } from '../components/ui'
 import { ING_MAP } from '../data/ingredients'
 import { RECIPE_MAP, SLOT_LABEL } from '../data/recipes'
 import type { ShoppingList } from '../engine/model'
-import { buildShoppingList, listTotal } from '../engine/shopping'
+import { buildShoppingList, listParTotal, listTotal, listUseTotal } from '../engine/shopping'
 import { fmtMoney, fmtNum, fmtQty } from '../engine/units'
 import { useStore } from '../store/store'
 import { go } from '../store/ui'
@@ -21,7 +21,7 @@ export default function Shopping() {
   const list = data.shopping
 
   const gen = () => setPreview(buildShoppingList(data, horizon, mode, store))
-  const sections = useMemo(() => { const l = preview ?? list; if (!l) return []; const m: Record<string, typeof l.lines> = {}; for (const x of l.lines) (m[ING_MAP[x.ing].section] ??= []).push(x); return Object.entries(m) }, [preview, list])
+  const sections = useMemo(() => { const l = preview ?? list; if (!l) return []; const m: Record<string, typeof l.lines> = {}; for (const x of l.lines) (m[x.kind === 'par' ? 'Zaxira (bir marta olinadi, oylarga yetadi)' : ING_MAP[x.ing].section] ??= []).push(x); return Object.entries(m) }, [preview, list])
   const copyText = () => { const l = list ?? preview; if (!l) return; const t = sections.map(([s, xs]) => `${s}:\n` + xs.map(x => `  • ${ING_MAP[x.ing].name} — ${fmtQty(x.ing, x.qty)} ≈ ${fmtMoney(x.estPrice)}`).join('\n')).join('\n') + `\nJami ≈ ${fmtMoney(listTotal(l))}`; navigator.clipboard?.writeText(t).then(() => st.showToast('Nusxalandi — Telegramga tashlang')).catch(() => st.showToast('Nusxalab bo\'lmadi')) }
 
   if (!list && !preview) return <div className="stack">
@@ -43,13 +43,22 @@ export default function Shopping() {
   const L = (preview ?? list)!
   const est = listTotal(L), actual = listTotal(L, true), checked = L.lines.filter(x => x.checked).length
   const dayBudget = data.settings.budgetMonthly / 30 * L.horizon
+  const useT = listUseTotal(L), parT = listParTotal(L), restT = Math.max(0, est - useT - parT)
   return <div className="stack">
     <div className="row between"><h1>{preview ? 'Yangi ro\'yxat' : 'Bozorlik ro\'yxati'}</h1>{preview ? <button className="btn sm ghost" onClick={() => setPreview(null)}>Bekor</button> : <button className="btn sm ghost" onClick={copyText}>Nusxalash</button>}</div>
     <div className="card">
       <div className="row between"><span className="eyebrow">{L.horizon} kun · {L.store === 'bozor' ? 'bozor' : 'supermarket'}</span><span className="small muted">{L.lines.length} satr</span></div>
       <div className="row between" style={{ marginTop: 6 }}><div><div className="tiny muted">Taxminiy</div><div className="big-num" style={{ fontSize: '1.3rem' }}>{fmtMoney(est)}</div></div>{!preview && <div style={{ textAlign: 'right' }}><div className="tiny muted">Savatda ({checked})</div><div className="big-num" style={{ fontSize: '1.3rem' }}>{fmtMoney(actual)}</div></div>}</div>
-      <div className="tiny muted num" style={{ marginTop: 4 }}>{L.horizon} kunlik byudjet ≈ {fmtNum(dayBudget)} so'm {est > dayBudget * 1.15 ? '— ro\'yxat byudjetdan katta, qimmat satrlarni kamaytiring' : '— byudjet ichida'}</div>
+      <div className="stack" style={{ gap: 4, marginTop: 10, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+        <div className="row between small"><span>Shu {L.horizon} kunda yeyiladi</span><b className="num" style={{ color: useT > dayBudget * 1.05 ? 'var(--bad)' : 'var(--ok)' }}>{fmtMoney(useT)}</b></div>
+        <div className="row between small muted"><span>{L.horizon} kunlik byudjet</span><span className="num">{fmtMoney(dayBudget)}</span></div>
+        {restT > 500 && <div className="row between small muted"><span>Qadoq qoldig'i — keyingi haftaga o'tadi</span><span className="num">{fmtMoney(restT)}</span></div>}
+        {parT > 0 && <div className="row between small muted"><span>Zaxira (bir martalik)</span><span className="num">{fmtMoney(parT)}</span></div>}
+        {L.planKcal ? <div className="row between small muted"><span>Reja bo'yicha kuniga</span><span className="num">≈ {fmtNum(L.planKcal)} kcal / kishi</span></div> : null}
+        <div className="tiny muted">{useT > dayBudget * 1.05 ? 'Yeyiladigan qism byudjetdan oshdi — "Arzonroq reja" tugmasini bosing yoki qimmat satrlarni o\'chiring.' : 'Yeyiladigan qism byudjet ichida. Zaxira va qadoq qoldig\'i bir marta to\'lanadi, keyingi haftalar ro\'yxati shuncha arzon bo\'ladi.'}</div>
+      </div>
     </div>
+    {preview && useT > dayBudget * 1.05 && <button className="btn block" onClick={() => setPreview(buildShoppingList({ ...data, settings: { ...data.settings, budgetMonthly: data.settings.budgetMonthly * 0.75 } }, L.horizon, L.mode, L.store))}>Arzonroq reja tuzish</button>}
     {L.menu && <details open={showMenu} onToggle={e => setShowMenu((e.target as HTMLDetailsElement).open)}><summary>Ovqat rejasi ({Object.keys(L.menu).length} kun)</summary>
       <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Kun</th><th>Nonushta</th><th>Tushlik</th><th>Kechki</th></tr></thead><tbody>{Object.entries(L.menu).map(([d, m]) => <tr key={d}><td className="num">{d.slice(5)}</td>{(['nonushta', 'tushlik', 'kechki'] as const).map(s => <td key={s} className="small">{m[s] ? RECIPE_MAP[m[s]!]?.name.split(' (')[0] : '—'}</td>)}</tr>)}</tbody></table></div>
       <p className="tiny muted">Bu taxminiy reja — har kuni "Bugun" sahifasi ombor holatiga qarab qayta tavsiya qiladi. {SLOT_LABEL.tamaddi} alohida.</p>
