@@ -32,6 +32,8 @@ export interface AppData {
   water: Record<string, number>
   favorites: string[]
   disliked: string[]
+  stamps?: Record<string, string>
+  dirty?: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -43,7 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const emptyData = (): AppData => ({
   v: 1, rev: 0, updatedAt: new Date().toISOString(), onboarded: false,
   settings: { ...DEFAULT_SETTINGS }, myRecipes: [], priceOverride: {}, priceHistory: {},
-  lots: [], leftovers: [], plans: [], logs: [], purchases: [], shopping: null, water: {}, favorites: [], disliked: [],
+  lots: [], leftovers: [], plans: [], logs: [], purchases: [], shopping: null, water: {}, favorites: [], disliked: [], stamps: {}, dirty: false,
 })
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
@@ -53,3 +55,31 @@ export const todayStr = (d = new Date()) => {
 }
 export const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return todayStr(d) }
 export const daysBetween = (a: string, b: string) => Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / 86400000)
+
+const SECTIONS = ['onboarded', 'settings', 'myRecipes', 'priceOverride', 'priceHistory', 'lots', 'leftovers', 'plans', 'logs', 'purchases', 'shopping', 'water', 'favorites', 'disliked'] as const
+type Sec = typeof SECTIONS[number]
+
+/** o'zgargan bo'limlarga vaqt muhri qo'yadi */
+export function stampChanges(before: AppData, after: AppData, now = new Date().toISOString()) {
+  after.stamps = { ...(before.stamps ?? {}) }
+  for (const k of SECTIONS) {
+    if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) after.stamps[k] = now
+  }
+}
+
+const byId = <T extends { id: string }>(a: T[], b: T[]) => { const m = new Map<string, T>(); for (const x of a) m.set(x.id, x); for (const x of b) if (!m.has(x.id)) m.set(x.id, x); return [...m.values()] }
+
+/** ikki holatni bo'limma-bo'lim birlashtiradi: yangiroq bo'lim g'olib, kundalik va xaridlar — birlashma */
+export function mergeData(local: AppData, remote: AppData, remoteAt: string): AppData {
+  void remoteAt
+  const out: AppData = { ...remote, stamps: { ...(remote.stamps ?? {}) } }
+  const ls = local.stamps ?? {}, rs = remote.stamps ?? {}
+  for (const k of SECTIONS) {
+    const l = ls[k] ?? '', r = rs[k] ?? ''
+    if (k === 'logs') { out.logs = byId(local.logs, remote.logs).sort((a, b) => a.ts.localeCompare(b.ts)); out.stamps![k] = l > r ? l : r; continue }
+    if (k === 'purchases') { out.purchases = byId(local.purchases, remote.purchases); out.stamps![k] = l > r ? l : r; continue }
+    if (l > r) { (out as unknown as Record<Sec, unknown>)[k] = local[k]; out.stamps![k] = l }
+  }
+  out.updatedAt = local.updatedAt > remote.updatedAt ? local.updatedAt : remote.updatedAt
+  return out
+}

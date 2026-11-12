@@ -15,4 +15,4 @@ async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T> {
 export type Remote = { state: AppData; rev: number; updated_at: string } | null
 export const loadRemote = (code: string) => rpc<Remote>('qozon_load', { p_code: code })
 export const saveRemote = (code: string, state: AppData, baseRev: number) =>
-  rpc<{ ok: boolean; conflict?: boolean; rev: number; state?: AppData }>('qozon_save', { p_code: code, p_state: state, p_base_rev: baseRev })
+  rpc<{ ok: boolean; conflict?: boolean; rev: number; state?: AppData; updated_at?: string }>('qozon_save', { p_code: code, p_state: state, p_base_rev: baseRev })

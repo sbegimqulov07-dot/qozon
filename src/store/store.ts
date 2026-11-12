@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { ING_MAP } from '../data/ingredients'
 import { RECIPE_MAP, RECIPES } from '../data/recipes'
 import type { Slot } from '../data/types'
-import { addDays, emptyData, todayStr, uid, type AppData, type Leftover, type Lot, type LogEvent, type Settings, type ShoppingList } from '../engine/model'
+import { addDays, emptyData, mergeData, stampChanges, todayStr, uid, type AppData, type Leftover, type Lot, type LogEvent, type Settings, type ShoppingList } from '../engine/model'
 import { consume, defaultExpiry, makeLot } from '../engine/pantry'
 import { recipeKcal, unitPrice } from '../engine/pricing'
 import { priceCtx } from '../engine/recommend'
@@ -51,9 +51,12 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null
 export const useStore = create<Store>()(persist((set, get) => ({
   data: emptyData(), toast: null, sync: 'off', syncMsg: '',
   set: (fn, opts) => {
-    const d = structuredClone(get().data)
+    const before = get().data
+    const d = structuredClone(before)
     fn(d)
     d.updatedAt = new Date().toISOString()
+    stampChanges(before, d, d.updatedAt)
+    d.dirty = true
     set({ data: d })
     if (!opts?.silent && d.settings.syncCode) schedulePush()
   },
@@ -206,16 +209,15 @@ export const useStore = create<Store>()(persist((set, get) => ({
     try {
       let res = await saveRemote(code, data, data.rev)
       if (!res.ok && res.conflict && res.state) {
-        const localNewer = new Date(data.updatedAt).getTime() > new Date(res.state.updatedAt ?? 0).getTime()
-        if (localNewer) {
-          res = await saveRemote(code, get().data, res.rev)
-        } else {
-          set({ data: { ...res.state, rev: res.rev, settings: { ...res.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Boshqa qurilmadagi o\'zgarishlar yuklandi' })
-          get().showToast('Boshqa qurilmadagi yangi ma\'lumot yuklandi')
-          return
-        }
+        // boshqa qurilma ham yozgan: bo'limma-bo'lim birlashtiramiz va qayta yuboramiz
+        const merged = mergeData(get().data, { ...emptyData(), ...res.state }, res.updated_at ?? res.state.updatedAt)
+        merged.settings = { ...merged.settings, syncCode: code }
+        merged.rev = res.rev
+        set({ data: merged })
+        res = await saveRemote(code, merged, res.rev)
+        get().showToast('Boshqa qurilmadagi o\'zgarishlar birlashtirildi')
       }
-      if (res.ok) set({ data: { ...get().data, rev: res.rev }, sync: 'idle', syncMsg: 'Saqlandi ' + new Date().toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' }) })
+      if (res.ok) set({ data: { ...get().data, rev: res.rev, dirty: false }, sync: 'idle', syncMsg: 'Saqlandi ' + new Date().toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' }) })
       else set({ sync: 'error', syncMsg: 'Saqlanmadi, qayta urinaman' })
     } catch (e) { set({ sync: 'error', syncMsg: 'Sinxron xatosi: ' + (e as Error).message }) }
   },
@@ -225,7 +227,16 @@ export const useStore = create<Store>()(persist((set, get) => ({
     try {
       const remote = await loadRemote(code)
       if (remote && remote.rev > data.rev) {
-        set({ data: { ...emptyData(), ...remote.state, rev: remote.rev, settings: { ...emptyData().settings, ...remote.state.settings, syncCode: code } }, sync: 'idle', syncMsg: 'Yangilandi' })
+        const r: AppData = { ...emptyData(), ...remote.state, settings: { ...emptyData().settings, ...remote.state.settings, syncCode: code } }
+        if (data.dirty) {
+          const merged = mergeData(get().data, r, remote.updated_at)
+          merged.settings = { ...merged.settings, syncCode: code }
+          merged.rev = remote.rev
+          set({ data: merged, sync: 'idle', syncMsg: 'Birlashtirildi' })
+          schedulePush()
+        } else {
+          set({ data: { ...r, rev: remote.rev, dirty: false }, sync: 'idle', syncMsg: 'Yangilandi' })
+        }
         return true
       }
       set({ sync: 'idle' })

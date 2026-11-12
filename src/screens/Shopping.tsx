@@ -20,7 +20,8 @@ export default function Shopping() {
   const [showMenu, setShowMenu] = useState(false)
   const list = data.shopping
 
-  const gen = () => setPreview(buildShoppingList(data, horizon, mode, store))
+  const [genErr, setGenErr] = useState('')
+  const gen = () => { try { const l = buildShoppingList(data, horizon, mode, store); if (!l.lines.length) { setGenErr('Ro\'yxat bo\'sh chiqdi: omborda hammasi yetarli yoki "Yeyman" retseptlar juda kam. Retseptlar bo\'limini tekshiring.'); return } setGenErr(''); setPreview(l) } catch (e) { setGenErr('Xato: ' + (e as Error).message) } }
   const sections = useMemo(() => { const l = preview ?? list; if (!l) return []; const m: Record<string, typeof l.lines> = {}; for (const x of l.lines) (m[x.kind === 'par' ? 'Zaxira (bir marta olinadi, oylarga yetadi)' : ING_MAP[x.ing].section] ??= []).push(x); return Object.entries(m) }, [preview, list])
   const copyText = () => { const l = list ?? preview; if (!l) return; const t = sections.map(([s, xs]) => `${s}:\n` + xs.map(x => `  • ${ING_MAP[x.ing].name} — ${fmtQty(x.ing, x.qty)} ≈ ${fmtMoney(x.estPrice)}`).join('\n')).join('\n') + `\nJami ≈ ${fmtMoney(listTotal(l))}`; navigator.clipboard?.writeText(t).then(() => st.showToast('Nusxalandi — Telegramga tashlang')).catch(() => st.showToast('Nusxalab bo\'lmadi')) }
 
@@ -36,6 +37,8 @@ export default function Shopping() {
       <div className="eyebrow">Qayerdan?</div>
       <div className="tabs"><button className={store === 'bozor' ? 'on' : ''} onClick={() => setStore('bozor')}>Bozor</button><button className={store === 'market' ? 'on' : ''} onClick={() => setStore('market')}>Korzinka / supermarket</button></div>
       <button className="btn primary xl" onClick={gen}>Ro'yxat tuzish</button>
+      {genErr && <p className="small" style={{ color: 'var(--bad)' }}>{genErr}</p>}
+      <p className="tiny muted">"Yeyman" retseptlar: {data.myRecipes.length} ta · omborda {data.lots.length} partiya</p>
     </div>
     <History />
   </div>
