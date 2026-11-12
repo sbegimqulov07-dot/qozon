@@ -1,0 +1,10 @@
+{
+  "name": "Qozon — uy oshxonasi yordamchisi",
+  "short_name": "Qozon",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F7F6F2",
+  "theme_color": "#0F5C4C",
+  "lang": "uz",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
