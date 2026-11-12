@@ -88,6 +88,7 @@ export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { 
     if (!hadProtein && protein && slot !== 'nonushta') { score += 8; reasons.push('Oqsil kerak') }
     if (data.favorites.includes(r.id)) { score += 5; reasons.push('Sevimli') }
     if (data.disliked.includes(r.id)) score -= 15
+    if (r.cat === 'garnir' && slot !== 'tamaddi') { score -= 12; warns.push('Garnir — asosiy ovqat emas') }
     if (s.thursdayPlov && d.getDay() === 4 && slot === 'kechki' && r.id.includes('palov')) { score += 8; reasons.push('Payshanba oshi') }
     const kcal = portionKcal(r)
     if (slot !== 'tamaddi' && kcal >= 650) { score += 4; reasons.push(`${Math.round(kcal)} kcal`) }

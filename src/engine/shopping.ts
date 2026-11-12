@@ -16,7 +16,7 @@ export function generateMenu(data: AppData, horizon: number, start = todayStr(),
   const dayBudget = data.settings.budgetMonthly / 30 * budgetFactor
   let spent = 0, kcalSum = 0
   const hist: { date: string; recipeId: string }[] = data.logs.filter(l => l.type === 'eat' && l.recipeId).map(l => ({ date: l.date, recipeId: l.recipeId! }))
-  const pending: { recipeId: string; portions: number; until: string }[] = data.leftovers.map(l => ({ recipeId: l.recipeId, portions: l.portions, until: l.expiresAt }))
+  const pending: { recipeId: string; portions: number; until: string; from: string }[] = data.leftovers.map(l => ({ recipeId: l.recipeId, portions: l.portions, until: l.expiresAt, from: '' }))
   const people = data.settings.people
   let meatDays = 0, weekStart = start
   for (let i = 0; i < horizon; i++) {
@@ -25,10 +25,11 @@ export function generateMenu(data: AppData, horizon: number, start = todayStr(),
     menu[date] = {}
     for (const slot of SLOTS) {
       // avval qoldiq
-      const lf = pending.find(p => p.portions >= people && p.until >= date && slot !== 'nonushta' && RECIPE_MAP[p.recipeId]?.meals[slot] !== 'no')
+      const lf = pending.find(p => p.portions >= people && p.until >= date && p.from < date && (slot !== 'nonushta' || RECIPE_MAP[p.recipeId]?.cat === 'nonushta') && RECIPE_MAP[p.recipeId]?.meals[slot] !== 'no' && menu[date].tushlik !== p.recipeId)
       if (lf) { lf.portions -= people; menu[date][slot] = lf.recipeId; hist.push({ date, recipeId: lf.recipeId }); const lr = RECIPE_MAP[lf.recipeId]; if (lr) { spent += portionCost(lr, ctx) * people; kcalSum += portionKcal(lr) * people }; continue }
       // virtual ombor: masalliq bo'yicha emas, xilma-xillik bo'yicha tanlaymiz (ombor keyin ayriladi)
       const list = recommend(data, slot, date, { history: hist, lots: [] })
+        .filter(s => s.recipe.cat !== 'garnir' && s.recipe.id !== menu[date].tushlik && s.recipe.id !== menu[date].nonushta)
         .filter(s => !(meatDays >= data.settings.meatPerWeek && s.recipe.ingredients.some(x => !x.opt && ING_MAP[x.id]?.cat === 'gosht')) || slot === 'nonushta')
       // byudjet nazorati: shu kungacha sarf rejadan oshsa — arzon variantlar
       const over = spent > (i + 0.34 * (SLOTS.indexOf(slot) + 1)) * dayBudget
@@ -47,7 +48,7 @@ export function generateMenu(data: AppData, horizon: number, start = todayStr(),
       hist.push({ date, recipeId: r.id })
       if (slot !== 'nonushta' && r.ingredients.some(x => !x.opt && ING_MAP[x.id]?.cat === 'gosht')) meatDays++
       for (const ing of r.ingredients) if (!ing.opt) need[ing.id] = (need[ing.id] ?? 0) + ing.qty * people
-      if (r.servings > 1) pending.push({ recipeId: r.id, portions: r.servings * people - people, until: addDays(date, 3) })
+      if (r.servings > 1) pending.push({ recipeId: r.id, portions: r.servings * people - people, until: addDays(date, 3), from: date })
     }
   }
   void weekStart

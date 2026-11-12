@@ -82,7 +82,7 @@ export const RECIPES_A: Recipe[] = [
     tools: ['Kichik qozon'], tags: ['tez', 'arzon'],
   },
   {
-    id: 'shirguruch', name: 'Shirguruch (sutli guruch bo\'tqasi)', cat: 'nonushta', meals: M('main', 'no', 'ok'), time: 35, difficulty: 1, servings: 2,
+    id: 'shirguruch', name: 'Shirguruch (sutli guruch bo\'tqasi)', cat: 'nonushta', meals: M('main', 'no', 'no'), time: 35, difficulty: 1, servings: 2,
     desc: '2 porsiya chiqadi — ertaga ham yeysiz, sovuq holda ham mazali.',
     ingredients: [{ id: 'guruch', qty: 180 }, { id: 'sut', qty: 800 }, { id: 'shakar', qty: 40 }, { id: 'sariyog', qty: 30 }, { id: 'tuz', qty: 2 }, { id: 'mayiz', qty: 40, opt: true }],
     steps: [
