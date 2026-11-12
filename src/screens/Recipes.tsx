@@ -11,6 +11,8 @@ import { useUI } from '../store/ui'
 export default function Recipes() {
   const data = useStore(s => s.data)
   const toggle = useStore(s => s.toggleRecipe)
+  const setMy = useStore(s => s.setMyRecipes)
+  const showToast = useStore(s => s.showToast)
   const open = useUI(s => s.openRecipe)
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<string>('all')
@@ -34,7 +36,7 @@ export default function Recipes() {
 
   const ingOptions = INGREDIENTS.filter(i => (stock[i.id] ?? 0) > 0)
   return <div className="stack">
-    <h1>Retseptlar</h1>
+    <div className="row between"><h1>Retseptlar</h1><span className="small muted">{data.myRecipes.length} / {RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).length} yeyman</span></div>
     <input type="search" placeholder="Qidirish: ovqat yoki masalliq (pomidor, smetana…)" value={q} onChange={e => setQ(e.target.value)} />
     <div className="chips">
       <button className={'chip lg' + (f.mine ? ' sel' : '')} onClick={() => setF({ ...f, mine: !f.mine })}>Mening ro'yxatim</button>
@@ -50,14 +52,15 @@ export default function Recipes() {
       <p className="small muted">Ombordagi masalliqlardan tanlang, mos retseptlar qoladi.</p>
       <div className="chips" style={{ paddingBlock: 8 }}>{ingOptions.map(i => <button key={i.id} className={'chip' + (byIng.includes(i.id) ? ' sel' : '')} onClick={() => setByIng(b => b.includes(i.id) ? b.filter(x => x !== i.id) : [...b, i.id])}>{i.name.split(' (')[0]}</button>)}{!ingOptions.length && <span className="small muted">Ombor bo'sh</span>}</div>
     </details>
-    <div className="small muted">{list.length} ta retsept</div>
+    <div className="row between"><span className="small muted">{list.length} ta retsept</span>{data.myRecipes.length < 10 && <button className="btn sm ghost" onClick={() => { setMy(RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).map(r => r.id)); showToast('Barcha retseptlar "Yeyman" qilindi') }}>Hammasini yeyman</button>}</div>
     <div className="list card" style={{ padding: '0 14px' }}>
       {list.map(({ r, av, cost, kcal }) => <div key={r.id} className="item">
         <span className={'dot ' + (av.status === 'full' ? 'ok' : av.status === 'almost' ? 'warn' : 'off')} />
         <button className="grow" style={{ textAlign: 'left' }} onClick={() => open(r.id)}><div className="title">{r.name}</div><div className="small muted num">{r.time} daq · {fmtMoney(cost)} · {Math.round(kcal)} kcal{av.status !== 'full' ? ` · ${av.missing.length} ta yetishmaydi` : ''}</div></button>
-        <button className={'btn sm ' + (data.myRecipes.includes(r.id) ? '' : 'ghost')} onClick={() => toggle(r.id)}>{data.myRecipes.includes(r.id) ? '✓' : '+'}</button>
+        <button className={'btn sm ' + (data.myRecipes.includes(r.id) ? '' : 'ghost')} title={data.myRecipes.includes(r.id) ? 'Ro\'yxatimdan olib tashlash' : 'Ro\'yxatimga qo\'shish'} onClick={() => { const was = data.myRecipes.includes(r.id); toggle(r.id); showToast(was ? `${r.name.split(' (')[0]} ro'yxatdan olindi` : `${r.name.split(' (')[0]} ro'yxatga qo'shildi`, () => toggle(r.id)) }}>{data.myRecipes.includes(r.id) ? 'Yeyman ✓' : '+ Qo\'shish'}</button>
       </div>)}
-      {!list.length && <div className="item muted">Hech narsa topilmadi</div>}
+      {!list.length && f.mine && !q && cat === 'all' && !byIng.length && <div className="item col" style={{ alignItems: 'flex-start' }}><b>"Yeyman" ro'yxatingiz bo'sh</b><span className="small muted">"Yeyman ✓" tugmasi retseptni ro'yxatdan chiqaradi. Hammasini qaytarish uchun:</span><button className="btn primary sm" onClick={() => { setMy(RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).map(r => r.id)); showToast('Barcha retseptlar qaytarildi') }}>Hammasini qaytarish</button></div>}
+      {!list.length && !(f.mine && !q && cat === 'all' && !byIng.length) && <div className="item muted">Hech narsa topilmadi{f.mine ? ' — "Mening ro\'yxatim" filtrini o\'chirib ko\'ring' : ''}</div>}
     </div>
   </div>
 }

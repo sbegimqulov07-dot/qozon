@@ -20,6 +20,7 @@ interface Store {
   // actions
   finishOnboarding: (settings: Partial<Settings>, recipes: string[], pantry: { id: string; qty: number }[]) => void
   toggleRecipe: (id: string) => void
+  setMyRecipes: (ids: string[]) => void
   toggleFav: (id: string) => void
   toggleDislike: (id: string) => void
   updateSettings: (p: Partial<Settings>) => void
@@ -65,6 +66,7 @@ export const useStore = create<Store>()(persist((set, get) => ({
     for (const p of pantry) if (p.qty > 0) d.lots.push(makeLot(p.id, p.qty, ctx, { source: 'boshlang\'ich' }))
     d.onboarded = true
   }),
+  setMyRecipes: ids => get().set(d => { d.myRecipes = ids }),
   toggleRecipe: id => get().set(d => { d.myRecipes = d.myRecipes.includes(id) ? d.myRecipes.filter(x => x !== id) : [...d.myRecipes, id] }),
   toggleFav: id => get().set(d => { d.favorites = d.favorites.includes(id) ? d.favorites.filter(x => x !== id) : [...d.favorites, id]; d.disliked = d.disliked.filter(x => x !== id) }),
   toggleDislike: id => get().set(d => { d.disliked = d.disliked.includes(id) ? d.disliked.filter(x => x !== id) : [...d.disliked, id]; d.favorites = d.favorites.filter(x => x !== id) }),
