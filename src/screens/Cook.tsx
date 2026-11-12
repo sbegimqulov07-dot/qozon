@@ -59,7 +59,8 @@ export default function Cook({ recipeId, slot }: { recipeId: string; slot: Slot 
                 <div className="grow"><div className={'title' + (checked.includes(ing.id) ? ' strike' : '')}>{ING_MAP[ing.id]?.name}{ing.opt && <span className="muted small"> (ixtiyoriy)</span>}{ing.note && <span className="muted small"> — {ing.note}</span>}</div><div className="small muted num">{fmtQty(ing.id, q)}{hm ? ` · ${hm}` : ''}{!have && !ing.opt ? ' · omborda yo\'q' : ''}</div></div>
                 <span className={'dot ' + (have ? 'ok' : ing.opt ? 'off' : 'bad')} /></div> })}
           </div>
-          {r.tools && <div className="small muted">Kerak: {r.tools.join(', ')}</div>}
+          {r.tools && r.tools.length > 0 && <div className="small muted">Kerak: {r.tools.join(', ')}</div>}
+          {!r.steps.length && <div className="why">Bu retseptda qadamlar yozilmagan — o'zingiz bilganingizcha pishiring. Tayyor bo'lgach "Pishirdim" ni bosing, ombor va kaloriya hisoblanadi.</div>}
         </>}
 
         {phase === 'steps' && step && <>
@@ -94,12 +95,12 @@ export default function Cook({ recipeId, slot }: { recipeId: string; slot: Slot 
       </div>
 
       <div className="cook-foot">
-        {phase === 'prep' && <button className="btn primary xl" onClick={() => setPhase('steps')}>Boshlash</button>}
+        {phase === 'prep' && <button className="btn primary xl" onClick={() => setPhase(r.steps.length ? 'steps' : 'done')}>{r.steps.length ? 'Boshlash' : 'Pishirdim — davom etish'}</button>}
         {phase === 'steps' && <>
           <button className="btn" onClick={() => i === 0 ? setPhase('prep') : setI(i - 1)}>Orqaga</button>
           <button className="btn primary grow xl" style={{ width: 'auto' }} onClick={() => i >= r.steps.length - 1 ? setPhase('done') : setI(i + 1)}>{i >= r.steps.length - 1 ? 'Tayyor!' : 'Keyingi qadam'}</button>
         </>}
-        {phase === 'done' && <><button className="btn" onClick={() => setPhase('steps')}>Orqaga</button><button className="btn primary grow xl" style={{ width: 'auto' }} onClick={finish}>Pishirdim — yozib qo'y</button></>}
+        {phase === 'done' && <><button className="btn" onClick={() => setPhase(r.steps.length ? 'steps' : 'prep')}>Orqaga</button><button className="btn primary grow xl" style={{ width: 'auto' }} onClick={finish}>Pishirdim — yozib qo'y</button></>}
         {phase === 'result' && <button className="btn primary xl" onClick={stop}>Yopish</button>}
       </div>
     </div>

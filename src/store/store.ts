@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ING_MAP } from '../data/ingredients'
-import { RECIPE_MAP, RECIPES } from '../data/recipes'
-import type { Slot } from '../data/types'
+import { applyCustomRecipes, RECIPE_MAP, RECIPES } from '../data/recipes'
+import type { Recipe, Slot } from '../data/types'
 import { addDays, emptyData, mergeData, stampChanges, todayStr, uid, type AppData, type Leftover, type Lot, type LogEvent, type Settings, type ShoppingList } from '../engine/model'
 import { consume, defaultExpiry, makeLot } from '../engine/pantry'
 import { recipeKcal, unitPrice } from '../engine/pricing'
@@ -21,6 +21,8 @@ interface Store {
   finishOnboarding: (settings: Partial<Settings>, recipes: string[], pantry: { id: string; qty: number }[]) => void
   toggleRecipe: (id: string) => void
   setMyRecipes: (ids: string[]) => void
+  saveCustomRecipe: (r: Recipe) => void
+  deleteCustomRecipe: (id: string) => void
   toggleFav: (id: string) => void
   toggleDislike: (id: string) => void
   updateSettings: (p: Partial<Settings>) => void
@@ -70,6 +72,8 @@ export const useStore = create<Store>()(persist((set, get) => ({
     d.onboarded = true
   }),
   setMyRecipes: ids => get().set(d => { d.myRecipes = ids }),
+  saveCustomRecipe: r => get().set(d => { d.customRecipes = [...(d.customRecipes ?? []).filter(x => x.id !== r.id), r]; if (!d.myRecipes.includes(r.id)) d.myRecipes.push(r.id) }),
+  deleteCustomRecipe: id => get().set(d => { d.customRecipes = (d.customRecipes ?? []).filter(x => x.id !== id); d.myRecipes = d.myRecipes.filter(x => x !== id); d.favorites = d.favorites.filter(x => x !== id) }),
   toggleRecipe: id => get().set(d => { d.myRecipes = d.myRecipes.includes(id) ? d.myRecipes.filter(x => x !== id) : [...d.myRecipes, id] }),
   toggleFav: id => get().set(d => { d.favorites = d.favorites.includes(id) ? d.favorites.filter(x => x !== id) : [...d.favorites, id]; d.disliked = d.disliked.filter(x => x !== id) }),
   toggleDislike: id => get().set(d => { d.disliked = d.disliked.includes(id) ? d.disliked.filter(x => x !== id) : [...d.disliked, id]; d.favorites = d.favorites.filter(x => x !== id) }),
@@ -275,6 +279,8 @@ export const ALL_RECIPE_IDS = RECIPES.map(r => r.id)
 export const useData = () => useStore(s => s.data)
 
 // sinxron: sahifa ko'ringanda va har 25 soniyada tortish
+applyCustomRecipes(useStore.getState().data.customRecipes ?? [])
+useStore.subscribe((st, prev) => { if (st.data.customRecipes !== prev.data.customRecipes) applyCustomRecipes(st.data.customRecipes ?? []) })
 if (typeof window !== 'undefined') {
   setTimeout(() => { const s = useStore.getState(); if (s.data.settings.syncCode) { useStore.setState({ sync: 'idle' }); s.pullNow() } }, 200)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') useStore.getState().pullNow() })

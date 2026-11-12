@@ -1,4 +1,4 @@
-import type { Place, Slot } from '../data/types'
+import type { Place, Recipe, Slot } from '../data/types'
 
 export interface Lot { id: string; ing: string; qty: number; unitPrice: number; boughtAt: string; expiresAt: string; place: Place; source?: string }
 export interface Leftover { id: string; recipeId: string; name: string; portions: number; portionCost: number; portionKcal: number; cookedAt: string; expiresAt: string; frozen?: boolean }
@@ -32,6 +32,7 @@ export interface AppData {
   water: Record<string, number>
   favorites: string[]
   disliked: string[]
+  customRecipes: Recipe[]
   stamps?: Record<string, string>
   dirty?: boolean
 }
@@ -45,7 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const emptyData = (): AppData => ({
   v: 1, rev: 0, updatedAt: new Date().toISOString(), onboarded: false,
   settings: { ...DEFAULT_SETTINGS }, myRecipes: [], priceOverride: {}, priceHistory: {},
-  lots: [], leftovers: [], plans: [], logs: [], purchases: [], shopping: null, water: {}, favorites: [], disliked: [], stamps: {}, dirty: false,
+  lots: [], leftovers: [], plans: [], logs: [], purchases: [], shopping: null, water: {}, favorites: [], disliked: [], customRecipes: [], stamps: {}, dirty: false,
 })
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
@@ -56,7 +57,7 @@ export const todayStr = (d = new Date()) => {
 export const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return todayStr(d) }
 export const daysBetween = (a: string, b: string) => Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / 86400000)
 
-const SECTIONS = ['onboarded', 'settings', 'myRecipes', 'priceOverride', 'priceHistory', 'lots', 'leftovers', 'plans', 'logs', 'purchases', 'shopping', 'water', 'favorites', 'disliked'] as const
+const SECTIONS = ['onboarded', 'settings', 'myRecipes', 'priceOverride', 'priceHistory', 'lots', 'leftovers', 'plans', 'logs', 'purchases', 'shopping', 'water', 'favorites', 'disliked', 'customRecipes'] as const
 type Sec = typeof SECTIONS[number]
 
 /** o'zgargan bo'limlarga vaqt muhri qo'yadi */

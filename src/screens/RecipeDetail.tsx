@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icons, Sheet } from '../components/ui'
 import { ING_MAP } from '../data/ingredients'
-import { RECIPE_MAP, SLOT_LABEL } from '../data/recipes'
+import { isCustom, RECIPE_MAP, SLOT_LABEL } from '../data/recipes'
 import type { Slot } from '../data/types'
 import { availability, stockMap } from '../engine/pantry'
 import { portionCost, portionKcal, recipeCost, recipeKcal } from '../engine/pricing'
@@ -9,6 +9,7 @@ import { priceCtx } from '../engine/recommend'
 import { fmtMoney, fmtNum, fmtQty, homeMeasure } from '../engine/units'
 import { useStore } from '../store/store'
 import { useUI } from '../store/ui'
+import CustomRecipe from './CustomRecipe'
 
 export default function RecipeDetail({ id }: { id: string }) {
   const r = RECIPE_MAP[id]
@@ -17,6 +18,7 @@ export default function RecipeDetail({ id }: { id: string }) {
   const close = () => useUI.getState().openRecipe(null)
   const startCook = useUI(s => s.startCook)
   const [planOpen, setPlanOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   if (!r) return null
   const ctx = priceCtx(data)
   const scale = data.settings.people
@@ -47,7 +49,8 @@ export default function RecipeDetail({ id }: { id: string }) {
           {av.missing.length > 0 && <div className="small muted" style={{ marginTop: 6 }}>Yetishmaydiganlar ≈ {fmtMoney(av.missingCost)}</div>}
         </div>
         {r.tools && <div className="small"><b>Idishlar:</b> {r.tools.join(', ')}</div>}
-        <details><summary>Qadamlar ({r.steps.length})</summary><ol style={{ paddingLeft: 20, margin: 0 }} className="stack">{r.steps.map((s, i) => <li key={i}>{s.t}{s.timer ? <span className="chip" style={{ marginLeft: 6 }}>⏱ {s.timer} daq</span> : null}{s.why && <div className="small muted">Nega: {s.why}</div>}</li>)}</ol></details>
+        {r.steps.length > 0 && <details><summary>Qadamlar ({r.steps.length})</summary><ol style={{ paddingLeft: 20, margin: 0 }} className="stack">{r.steps.map((s, i) => <li key={i}>{s.t}{s.timer ? <span className="chip" style={{ marginLeft: 6 }}>⏱ {s.timer} daq</span> : null}{s.why && <div className="small muted">Nega: {s.why}</div>}</li>)}</ol></details>}
+        {!r.steps.length && <div className="small muted">Qadamlar yozilmagan — o'zingiz bilganingizcha pishirasiz.</div>}
         {r.leftover && <div className="why">Qoldiq: {r.leftover}</div>}
         <div className="row">
           <button className="btn primary grow" onClick={() => startCook(r.id, defSlot)}>Pishirishni boshlash</button>
@@ -58,8 +61,12 @@ export default function RecipeDetail({ id }: { id: string }) {
           <button className={'btn sm ' + (mine ? '' : 'ghost')} onClick={() => st.toggleRecipe(r.id)}>{mine ? '✓ Yeyman' : 'Ro\'yxatimga qo\'shish'}</button>
           <button className="btn sm ghost row" onClick={() => st.toggleFav(r.id)}><span style={{ width: 16, height: 16, display: 'inline-flex', color: 'var(--pop)' }}>{Icons.heart(data.favorites.includes(r.id))}</span>Sevimli</button>
           <button className={'btn sm ' + (data.disliked.includes(r.id) ? '' : 'ghost')} onClick={() => st.toggleDislike(r.id)}>Kamroq tavsiya qil</button>
+          {isCustom(r.id) && <button className="btn sm ghost" onClick={() => setEditOpen(true)}>Tahrirlash</button>}
+          {isCustom(r.id) && <button className="btn sm ghost" style={{ color: 'var(--bad)' }} onClick={() => { const snap = r; st.deleteCustomRecipe(r.id); close(); st.showToast('Retsept o\'chirildi', () => st.saveCustomRecipe(snap)) }}>O'chirish</button>}
         </div>
+        {isCustom(r.id) && <div className="tiny muted">Sizning retseptingiz · {r.steps.length ? 'qadamlar bilan' : 'qadamlarsiz'}</div>}
       </div>
+      {editOpen && <CustomRecipe open={editOpen} onClose={() => setEditOpen(false)} edit={r} />}
     </Sheet>
   )
 }

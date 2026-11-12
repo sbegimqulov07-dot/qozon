@@ -7,6 +7,7 @@ import { priceCtx } from '../engine/recommend'
 import { fmtMoney } from '../engine/units'
 import { useStore } from '../store/store'
 import { useUI } from '../store/ui'
+import CustomRecipe from './CustomRecipe'
 
 export default function Recipes() {
   const data = useStore(s => s.data)
@@ -18,6 +19,7 @@ export default function Recipes() {
   const [cat, setCat] = useState<string>('all')
   const [f, setF] = useState<{ have?: boolean; quick?: boolean; cheap?: boolean; mine?: boolean }>({ mine: true })
   const [byIng, setByIng] = useState<string[]>([])
+  const [custom, setCustom] = useState(false)
   const ctx = priceCtx(data)
   const stock = stockMap(data.lots)
   const ex = new Set(data.settings.excluded)
@@ -36,7 +38,8 @@ export default function Recipes() {
 
   const ingOptions = INGREDIENTS.filter(i => (stock[i.id] ?? 0) > 0)
   return <div className="stack">
-    <div className="row between"><h1>Retseptlar</h1><span className="small muted">{data.myRecipes.length} / {RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).length} yeyman</span></div>
+    <div className="row between"><h1>Retseptlar</h1><button className="btn sm primary" onClick={() => setCustom(true)}>+ O'z retseptim</button></div>
+    <div className="row between"><span className="small muted">Sizniki: {(data.customRecipes ?? []).length} ta</span><span className="small muted">{data.myRecipes.length} / {RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).length} yeyman</span></div>
     <input type="search" placeholder="Qidirish: ovqat yoki masalliq (pomidor, smetana…)" value={q} onChange={e => setQ(e.target.value)} />
     <div className="chips">
       <button className={'chip lg' + (f.mine ? ' sel' : '')} onClick={() => setF({ ...f, mine: !f.mine })}>Mening ro'yxatim</button>
@@ -60,6 +63,7 @@ export default function Recipes() {
         <button className={'btn sm ' + (data.myRecipes.includes(r.id) ? '' : 'ghost')} title={data.myRecipes.includes(r.id) ? 'Ro\'yxatimdan olib tashlash' : 'Ro\'yxatimga qo\'shish'} onClick={() => { const was = data.myRecipes.includes(r.id); toggle(r.id); showToast(was ? `${r.name.split(' (')[0]} ro'yxatdan olindi` : `${r.name.split(' (')[0]} ro'yxatga qo'shildi`, () => toggle(r.id)) }}>{data.myRecipes.includes(r.id) ? 'Yeyman ✓' : '+ Qo\'shish'}</button>
       </div>)}
       {!list.length && f.mine && !q && cat === 'all' && !byIng.length && <div className="item col" style={{ alignItems: 'flex-start' }}><b>"Yeyman" ro'yxatingiz bo'sh</b><span className="small muted">"Yeyman ✓" tugmasi retseptni ro'yxatdan chiqaradi. Hammasini qaytarish uchun:</span><button className="btn primary sm" onClick={() => { setMy(RECIPES.filter(r => !r.ingredients.some(i => !i.opt && ex.has(i.id))).map(r => r.id)); showToast('Barcha retseptlar qaytarildi') }}>Hammasini qaytarish</button></div>}
+      {custom && <CustomRecipe open={custom} onClose={() => setCustom(false)} />}
       {!list.length && !(f.mine && !q && cat === 'all' && !byIng.length) && <div className="item muted">Hech narsa topilmadi{f.mine ? ' — "Mening ro\'yxatim" filtrini o\'chirib ko\'ring' : ''}</div>}
     </div>
   </div>

@@ -21,14 +21,12 @@ export default function Shopping() {
   const list = data.shopping
 
   const [genErr, setGenErr] = useState('')
-  const gen = () => { try { const l = buildShoppingList(data, horizon, mode, store); if (!l.lines.length) { setGenErr('Ro\'yxat bo\'sh chiqdi: omborda hammasi yetarli yoki "Yeyman" retseptlar juda kam. Retseptlar bo\'limini tekshiring.'); return } setGenErr(''); setPreview(l) } catch (e) { setGenErr('Xato: ' + (e as Error).message) } }
+  const gen = () => { try { const l = buildShoppingList(data, horizon, mode, store); if (!l.lines.length) { setGenErr('Ro\'yxat bo\'sh chiqdi: omborda hammasi yetarli yoki "Yeyman" retseptlar juda kam. Retseptlar bo\'limini tekshiring.'); return } setGenErr(''); const prev = list; st.setShopping(l); setPreview(null); setShowGen(false); st.showToast('Ro\'yxat tuzildi va saqlandi', prev ? () => st.setShopping(prev) : undefined) } catch (e) { setGenErr('Xato: ' + (e as Error).message) } }
+  const [showGen, setShowGen] = useState(false)
   const sections = useMemo(() => { const l = preview ?? list; if (!l) return []; const m: Record<string, typeof l.lines> = {}; for (const x of l.lines) (m[x.kind === 'par' ? 'Zaxira (bir marta olinadi, oylarga yetadi)' : ING_MAP[x.ing].section] ??= []).push(x); return Object.entries(m) }, [preview, list])
   const copyText = () => { const l = list ?? preview; if (!l) return; const t = sections.map(([s, xs]) => `${s}:\n` + xs.map(x => `  • ${ING_MAP[x.ing].name} — ${fmtQty(x.ing, x.qty)} ≈ ${fmtMoney(x.estPrice)}`).join('\n')).join('\n') + `\nJami ≈ ${fmtMoney(listTotal(l))}`; navigator.clipboard?.writeText(t).then(() => st.showToast('Nusxalandi — Telegramga tashlang')).catch(() => st.showToast('Nusxalab bo\'lmadi')) }
 
-  if (!list && !preview) return <div className="stack">
-    <h1>Bozorlik</h1>
-    <p className="muted">Ilova ovqat rejasini tuzadi, ombordagini ayiradi, qadoqqa yaxlitlaydi va narxlarini ko'rsatadi.</p>
-    <div className="card stack">
+  const genPanel = <div className="card stack">
       <div className="eyebrow">Necha kunga?</div>
       <div className="tabs">{[7, 14, 30].map(h => <button key={h} className={horizon === h ? 'on' : ''} onClick={() => setHorizon(h)}>{h === 30 ? '1 oy' : h === 14 ? '2 hafta' : '1 hafta'}</button>)}</div>
       {horizon === 30 && <p className="small muted">1 oylik ro'yxatda tez buziladiganlar (sut, pomidor, ko'kat) faqat 1-haftaga olinadi — qolganini haftalik to'ldirishda olasiz. Go'shtni 200–300 g lik bo'lib muzlating.</p>}
@@ -40,6 +38,10 @@ export default function Shopping() {
       {genErr && <p className="small" style={{ color: 'var(--bad)' }}>{genErr}</p>}
       <p className="tiny muted">"Yeyman" retseptlar: {data.myRecipes.length} ta · omborda {data.lots.length} partiya</p>
     </div>
+  if (!list && !preview) return <div className="stack">
+    <h1>Bozorlik</h1>
+    <p className="muted">Ilova ovqat rejasini tuzadi, ombordagini ayiradi, qadoqqa yaxlitlaydi va narxlarini ko'rsatadi. Tugmani bossangiz ro'yxat darhol saqlanadi.</p>
+    {genPanel}
     <History />
   </div>
 
@@ -48,7 +50,8 @@ export default function Shopping() {
   const dayBudget = data.settings.budgetMonthly / 30 * L.horizon
   const useT = listUseTotal(L), parT = listParTotal(L), restT = Math.max(0, est - useT - parT)
   return <div className="stack">
-    <div className="row between"><h1>{preview ? 'Yangi ro\'yxat' : 'Bozorlik ro\'yxati'}</h1>{preview ? <button className="btn sm ghost" onClick={() => setPreview(null)}>Bekor</button> : <button className="btn sm ghost" onClick={copyText}>Nusxalash</button>}</div>
+    <div className="row between"><h1>{preview ? 'Yangi ro\'yxat' : 'Bozorlik ro\'yxati'}</h1>{preview ? <button className="btn sm ghost" onClick={() => setPreview(null)}>Bekor</button> : <div className="row"><button className="btn sm ghost" onClick={copyText}>Nusxalash</button><button className="btn sm ghost" onClick={() => setShowGen(!showGen)}>Qayta tuzish</button></div>}</div>
+    {showGen && !preview && <div className="stack"><p className="small muted">Yangi ro'yxat hozirgisining o'rnini bosadi (bekor qilish mumkin).</p>{genPanel}</div>}
     <div className="card">
       <div className="row between"><span className="eyebrow">{L.horizon} kun · {L.store === 'bozor' ? 'bozor' : 'supermarket'}</span><span className="small muted">{L.lines.length} satr</span></div>
       <div className="row between" style={{ marginTop: 6 }}><div><div className="tiny muted">Taxminiy</div><div className="big-num" style={{ fontSize: '1.3rem' }}>{fmtMoney(est)}</div></div>{!preview && <div style={{ textAlign: 'right' }}><div className="tiny muted">Savatda ({checked})</div><div className="big-num" style={{ fontSize: '1.3rem' }}>{fmtMoney(actual)}</div></div>}</div>
