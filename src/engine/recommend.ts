@@ -98,7 +98,7 @@ export function recommend(data: AppData, slot: Slot, date = todayStr(), opts: { 
     out.push({ recipe: r, score, avail: av, reasons: reasons.slice(0, 4), warns: warns.slice(0, 3), cost: pc, kcal })
   }
   // avval omborda bori: hammasi bor → deyarli bor → bozorlik kerak; ichida ball bo'yicha
-  const rank = (s: Scored) => s.avail.status === 'full' ? 0 : s.avail.status === 'almost' ? 1 : 2
+  const rank = (s: Scored) => (s.avail.status === 'full' ? 0 : s.avail.status === 'almost' ? 1 : 2) + (s.recipe.cat === 'garnir' && slot !== 'tamaddi' ? 1 : 0)
   return out.sort((a, b) => rank(a) - rank(b) || b.score - a.score)
 }
 
